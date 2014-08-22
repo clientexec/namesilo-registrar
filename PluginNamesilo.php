@@ -4,6 +4,13 @@ require_once 'modules/admin/models/RegistrarPlugin.php';
 
 class PluginNamesilo extends RegistrarPlugin
 {
+    public $supportsNamesuggest = false;
+
+    private $sandboxURL = 'http://sandbox.namesilo.com/api/';
+    private $liveURL = 'https://www.namesilo.com/api/';
+    private $apiVersion = '1';
+    private $returnType = 'xml';
+
     public function getVariables()
     {
         $variables = array(
@@ -44,5 +51,89 @@ class PluginNamesilo extends RegistrarPlugin
             )
         );
         return $variables;
-    }  
+    }
+
+    public function checkDomain($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domains' => $domain
+        );
+
+        $response = $this->makeRequest('checkRegisterAvailability', $params, $args);
+
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4,'NameSilo Error: ' . $response->reply->detail);
+            return array(5);
+        }
+
+        $domains = array();
+        $aDomain = DomainNameGateway::splitDomain($domain);
+        if ( isset($response->reply->available->domain) ) {
+            $domains[] = array(
+                'tld' => $aDomain[1],
+                'domain' => $aDomain[0],
+                'status' => 0
+            );
+        } else {
+            $domains[] = array(
+                'tld' => $aDomain[1],
+                'domain' => $aDomain[0],
+                'status' => 1
+            );
+        }
+
+        return array('result' => $domains);
+    }
+
+    public function registerDomain($params){}
+    public function getContactInformation($params){}
+    public function setContactInformation($params){}
+    public function getNameServers($params){}
+    public function setNameServers($params){}
+    public function checkNSStatus($params){}
+    public function registerNS($params){}
+    public function editNS($params){}
+    public function deleteNS($params){}
+    public function getGeneralInfo($params){}
+    public function setAutorenew($params){}
+    public function getRegistrarLock($params){}
+    public function setRegistrarLock($params){}
+    public function sendTransferKey($params){}
+
+
+
+
+
+
+    private function makeRequest($command, $params, $arguments)
+    {
+        require_once 'library/CE/NE_Network.php';
+
+        $request = $this->liveURL;
+        if ( $this->settings->get('plugin_namesilo_Use testing server') ){
+            $request = $this->sandboxURL;
+        }
+        $request .= $command;
+
+        $arguments['key'] = $this->settings->get('plugin_namesilo_API Key');
+        $arguments['version'] = $this->apiVersion;
+        $arguments['type'] = $this->returnType;
+
+        $i = 0;
+        foreach ($arguments as $name => $value) {
+            $value = urlencode($value);
+            if ( $i == 0 ) $request .= "?$name=$value";
+            else $request .= "&$name=$value";
+            $i++;
+        }
+
+        $response = NE_Network::curlRequest($this->settings, $request);
+        if ( $response instanceof CE_Error ) {
+            throw new CE_Exception ($response);
+        }
+
+        $response = simplexml_load_string($response);
+        return $response;
+    }
 }
