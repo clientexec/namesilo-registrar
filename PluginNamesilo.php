@@ -42,7 +42,7 @@ class PluginNamesilo extends RegistrarPlugin
             lang('Registered Actions') => array (
                                 'type'          => 'hidden',
                                 'description'   => lang('Current actions that are active for this plugin (when a domain is registered)'),
-                                'value'         => 'Renew (Renew Domain),SendTransferKey (Send Auth Info),Cancel',
+                                'value'         => 'Renew (Renew Domain),DomainTransferWithPopup (Initiate Transfer),SendTransferKey (Send Auth Info),Cancel',
                                 ),
             lang('Registered Actions For Customer') => array (
                                 'type'          => 'hidden',
@@ -457,6 +457,55 @@ class PluginNamesilo extends RegistrarPlugin
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
+    }
+
+    public function doDomainTransferWithPopup($params)
+    {
+        $userPackage = new UserPackage($params['userPackageId']);
+        $transferid = $this->initiateTransfer($this->buildTransferParams($userPackage,$params));
+        $userPackage->setCustomField("Registrar Order Id",$userPackage->getCustomField("Registrar") . '-' . $params['userPackageId']);
+        $userPackage->setCustomField('Transfer Status', $transferid);
+        return "Transfer of has been initiated.";
+    }
+
+    public function initiateTransfer($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain' => $domain,
+            'years'  => $params['NumYears'],
+            'auth'   => $params['eppCode']
+
+        );
+        $response = $this->makeRequest('transferDomain', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+        return $domain;
+    }
+
+    public function getTransferStatus($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain' => $domain
+        );
+        $response = $this->makeRequest('checkTransferStatus', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+
+        }
+        $userPackage = new UserPackage($params['userPackageId']);
+
+        $transferStatus = (string)$response->reply->message;
+        /* ToDo Get this value from NameSilo
+        if ( $transferStatus == '' ) {
+            $userPackage->setCustomField('Transfer Status', 'Completed');
+        }*/
+
+        return $transferStatus;
     }
 
 
