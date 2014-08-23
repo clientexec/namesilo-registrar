@@ -249,7 +249,51 @@ class PluginNamesilo extends RegistrarPlugin
         return lang('Domain updated successfully');
     }
 
-    public function getContactInformation($params){}
+    public function getContactInformation($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain'        => $domain
+        );
+
+        $response = $this->makeRequest('getDomainInfo', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+
+        $contactId = $response->reply->contact_ids->registrant;
+        $args = array (
+            'contact_id' => $contactId
+        );
+        $response = $this->makeRequest('contactList', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+
+        $contact = $response->reply->contact;
+
+        $info = array();
+        foreach (array('Registrant') as $type) {
+            $info[$type]['OrganizationName'] = array($this->user->lang('Organization'), (string)$contact->company);
+            $info[$type]['FirstName'] = array($this->user->lang('First Name'), (string)$contact->first_name);
+            $info[$type]['LastName'] = array($this->user->lang('Last Name'), (string)$contact->last_name);
+            $info[$type]['Address1'] = array($this->user->lang('Address').' 1', (string)$contact->address);
+            $info[$type]['Address2'] = array($this->user->lang('Address').' 2', (string)$contact->address2);
+            $info[$type]['City'] = array($this->user->lang('City'), (string)$contact->city);
+            $info[$type]['StateProv'] = array($this->user->lang('Province').'/'.$this->user->lang('State'), (string)$contact->state);
+            $info[$type]['Country']  = array($this->user->lang('Country'), (string)$contact->country);
+            $info[$type]['PostalCode']  = array($this->user->lang('Postal Code'), (string)$contact->zip);
+            $info[$type]['EmailAddress'] = array($this->user->lang('E-mail'), (string)$contact->email);
+            $info[$type]['Phone'] = array($this->user->lang('Phone'), (string)$contact->phone);
+            $info[$type]['Fax'] = array($this->user->lang('Fax'), (string)$contact->fax);
+        }
+
+        return $info;
+    }
+
+
     public function setContactInformation($params){}
     public function getNameServers($params){}
     public function setNameServers($params){}
