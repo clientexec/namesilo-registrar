@@ -42,7 +42,7 @@ class PluginNamesilo extends RegistrarPlugin
             lang('Registered Actions') => array (
                                 'type'          => 'hidden',
                                 'description'   => lang('Current actions that are active for this plugin (when a domain is registered)'),
-                                'value'         => 'SendTransferKey (Send Auth Info)',
+                                'value'         => 'Renew (Renew Domain),SendTransferKey (Send Auth Info)',
                                 ),
             lang('Registered Actions For Customer') => array (
                                 'type'          => 'hidden',
@@ -431,6 +431,28 @@ class PluginNamesilo extends RegistrarPlugin
             }
         }
         $response = $this->makeRequest($command, $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+    }
+
+    public function doRenew($params)
+    {
+        $userPackage = new UserPackage($params['userPackageId']);
+        $this->renewDomain($this->buildRenewParams($userPackage,$params));
+        $userPackage->setCustomField("Registrar Order Id",$userPackage->getCustomField("Registrar") . '-' . $params['userPackageId']);
+        return $userPackage->getCustomField('Domain Name') . ' has been renewed.';
+    }
+
+    public function renewDomain($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain' => $domain,
+            'years'  => $params['NumYears']
+        );
+        $response = $this->makeRequest('renewDomain', $params, $args);
         if ( $response->reply->code != 300 ) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
