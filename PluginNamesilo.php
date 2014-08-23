@@ -86,7 +86,55 @@ class PluginNamesilo extends RegistrarPlugin
         return array('result' => $domains);
     }
 
-    public function registerDomain($params){}
+    function doRegister($params)
+    {
+        $userPackage = new UserPackage($params['userPackageId']);
+        $this->registerDomain($this->buildRegisterParams($userPackage, $params));
+        $userPackage->setCustomField('Registrar Order Id', $userPackage->getCustomField("Registrar") . '-' . $params['userPackageId']);
+        return $userPackage->getCustomField('Domain Name') . ' has been registered.';
+    }
+
+    public function registerDomain($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain'        => $domain,
+            'years'         => $params['NumYears'],
+            'private'       => 0,
+            'auto_renew'    => 0,
+            'fn'            => $params['RegistrantFirstName'],
+            'ln'            => $params['RegistrantLastName'],
+            'ad'            => $params['RegistrantAddress1'],
+            'cy'            => $params['RegistrantCity'],
+            'st'            => $params['RegistrantStateProvince'],
+            'zp'            => $params['RegistrantPostalCode'],
+            'ct'            => $params['RegistrantCountry'],
+            'em'            => $params['RegistrantEmailAddress'],
+            'ph'            => $this->validatePhone($params['RegistrantPhone']),
+            'cp'            => $params['RegistrantOrganizationName']
+        );
+
+        if ( $this->settings->get('plugin_namesilo_Use testing server') ){
+            $args['ns1'] = 'NS1.NAMESILO.COM';
+            $args['ns2'] = 'NS2.NAMESILO.COM';
+        } else if ( isset($params['NS1']) ) {
+            // NameSilo allows for 13 total name servers
+            for ($i = 1; $i <= 13; $i++) {
+                if (isset($params["NS$i"])) {
+                    $args["ns$i"] = $params["ns$i"]['hostname'];
+                } else {
+                    break;
+                }
+            }
+        }
+
+        $response = $this->makeRequest('registerDomain', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+    }
+
     public function getContactInformation($params){}
     public function setContactInformation($params){}
     public function getNameServers($params){}
@@ -100,11 +148,6 @@ class PluginNamesilo extends RegistrarPlugin
     public function getRegistrarLock($params){}
     public function setRegistrarLock($params){}
     public function sendTransferKey($params){}
-
-
-
-
-
 
     private function makeRequest($command, $params, $arguments)
     {
@@ -129,11 +172,19 @@ class PluginNamesilo extends RegistrarPlugin
         }
 
         $response = NE_Network::curlRequest($this->settings, $request);
+
         if ( $response instanceof CE_Error ) {
             throw new CE_Exception ($response);
         }
 
         $response = simplexml_load_string($response);
         return $response;
+    }
+
+    private function validatePhone($phone)
+    {
+        // strip all non numerical values
+        $phone = preg_replace('/[^\d]/', '', $phone);
+        return $phone;
     }
 }
