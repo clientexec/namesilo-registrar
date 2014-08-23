@@ -476,10 +476,9 @@ class PluginNamesilo extends RegistrarPlugin
         $userPackage = new UserPackage($params['userPackageId']);
 
         $transferStatus = (string)$response->reply->message;
-        /* ToDo Get this value from NameSilo
-        if ( $transferStatus == '' ) {
+        if ( $transferStatus == 'Transfer Completed' ) {
             $userPackage->setCustomField('Transfer Status', 'Completed');
-        }*/
+        }
 
         return $transferStatus;
     }
