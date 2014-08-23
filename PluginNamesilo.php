@@ -164,6 +164,24 @@ class PluginNamesilo extends RegistrarPlugin
         return $data;
     }
 
+    public function getRegistrarLock($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain'        => $domain
+        );
+        $response = $this->makeRequest('getDomainInfo', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+
+        if ( strtolower($response->reply->locked) == 'yes' ) {
+            return 1;
+        }
+        return 0;
+    }
+
     public function getContactInformation($params){}
     public function setContactInformation($params){}
     public function getNameServers($params){}
@@ -173,7 +191,6 @@ class PluginNamesilo extends RegistrarPlugin
     public function editNS($params){}
     public function deleteNS($params){}
     public function setAutorenew($params){}
-    public function getRegistrarLock($params){}
     public function setRegistrarLock($params){}
     public function sendTransferKey($params){}
 
