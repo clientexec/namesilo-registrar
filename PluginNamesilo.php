@@ -293,8 +293,42 @@ class PluginNamesilo extends RegistrarPlugin
         return $info;
     }
 
+    public function setContactInformation($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain'        => $domain
+        );
 
-    public function setContactInformation($params){}
+        $response = $this->makeRequest('getDomainInfo', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+
+        $contactId = $response->reply->contact_ids->registrant;
+        $args = array (
+            'contact_id'    => (int)$contactId,
+            'fn'            => $params['Registrant_FirstName'],
+            'ln'            => $params['Registrant_LastName'],
+            'ad'            => $params['Registrant_Address1'],
+            'cy'            => $params['Registrant_City'],
+            'st'            => $params['Registrant_StateProv'],
+            'zp'            => $params['Registrant_PostalCode'],
+            'ct'            => $params['Registrant_Country'],
+            'em'            => $params['Registrant_EmailAddress'],
+            'ph'            => $this->validatePhone($params['Registrant_Phone']),
+            'cp'            => $params['Registrant_OrganizationName']
+
+        );
+
+        $response = $this->makeRequest('contactUpdate', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+    }
+
     public function getNameServers($params){}
     public function setNameServers($params){}
     public function checkNSStatus($params){}
