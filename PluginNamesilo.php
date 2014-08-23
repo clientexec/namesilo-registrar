@@ -42,12 +42,12 @@ class PluginNamesilo extends RegistrarPlugin
             lang('Registered Actions') => array (
                                 'type'          => 'hidden',
                                 'description'   => lang('Current actions that are active for this plugin (when a domain is registered)'),
-                                'value'         => '',
+                                'value'         => 'SendTransferKey (Send Auth Info)',
                                 ),
             lang('Registered Actions For Customer') => array (
                                 'type'          => 'hidden',
                                 'description'   => lang('Current actions that are active for this plugin (when a domain is registered)'),
-                                'value'         => '',
+                                'value'         => 'SendTransferKey (Send Auth Info)',
             )
         );
         return $variables;
@@ -182,6 +182,26 @@ class PluginNamesilo extends RegistrarPlugin
         return 0;
     }
 
+    function doSendTransferKey($params)
+    {
+        $userPackage = new UserPackage($params['userPackageId']);
+        $this->sendTransferKey($this->buildRegisterParams($userPackage,$params));
+        return 'Successfully sent auth info for ' . $userPackage->getCustomField('Domain Name');
+    }
+
+    public function sendTransferKey($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain' => $domain
+        );
+        $response = $this->makeRequest('retrieveAuthCode', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+    }
+
     public function getContactInformation($params){}
     public function setContactInformation($params){}
     public function getNameServers($params){}
@@ -192,7 +212,6 @@ class PluginNamesilo extends RegistrarPlugin
     public function deleteNS($params){}
     public function setAutorenew($params){}
     public function setRegistrarLock($params){}
-    public function sendTransferKey($params){}
 
     private function makeRequest($command, $params, $arguments)
     {
