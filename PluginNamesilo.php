@@ -350,7 +350,25 @@ class PluginNamesilo extends RegistrarPlugin
         return $info;
     }
 
-    public function setNameServers($params){}
+    public function setNameServers($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain' => $domain
+        );
+
+        foreach ($params['ns'] as $key => $value) {
+            $args['ns'.$key] = $value;
+        }
+        $response = $this->makeRequest('changeNameServers', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+
+    }
+
+
     public function checkNSStatus($params){}
     public function registerNS($params){}
     public function editNS($params){}
