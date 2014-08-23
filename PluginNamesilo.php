@@ -135,6 +135,35 @@ class PluginNamesilo extends RegistrarPlugin
         }
     }
 
+    public function getGeneralInfo($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain'        => $domain
+        );
+        $response = $this->makeRequest('getDomainInfo', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+
+        $data = array();
+        $data['domain'] = $domain;
+        $data['expiration'] = (string)$response->reply->expires;
+        $data['registrationstatus'] = (string)$response->reply->status;
+        $data['purchasestatus'] = 'N/A';
+        $data['autorenew'] = 0;
+
+        if ( strtolower($response->reply->auto_renew) == 'yes' ) {
+            $data['autorenew'] = 1;
+        }
+        // we should also update the autorenew here:
+        $userPackage = new UserPackage($params['userPackageId']);
+        $userPackage->setCustomField("Auto Renew", $data['autorenew']);
+
+        return $data;
+    }
+
     public function getContactInformation($params){}
     public function setContactInformation($params){}
     public function getNameServers($params){}
@@ -143,7 +172,6 @@ class PluginNamesilo extends RegistrarPlugin
     public function registerNS($params){}
     public function editNS($params){}
     public function deleteNS($params){}
-    public function getGeneralInfo($params){}
     public function setAutorenew($params){}
     public function getRegistrarLock($params){}
     public function setRegistrarLock($params){}
