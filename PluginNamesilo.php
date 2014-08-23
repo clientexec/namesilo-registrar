@@ -229,6 +229,26 @@ class PluginNamesilo extends RegistrarPlugin
         }
     }
 
+    public function setAutorenew($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain' => $domain
+        );
+
+        $command = 'addAutoRenewal';
+        if ( !$params['autorenew'] ) {
+            $command = 'removeAutoRenewal';
+        }
+
+        $response = $this->makeRequest($command, $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+        return lang('Domain updated successfully');
+    }
+
     public function getContactInformation($params){}
     public function setContactInformation($params){}
     public function getNameServers($params){}
@@ -237,8 +257,6 @@ class PluginNamesilo extends RegistrarPlugin
     public function registerNS($params){}
     public function editNS($params){}
     public function deleteNS($params){}
-    public function setAutorenew($params){}
-
 
     private function makeRequest($command, $params, $arguments)
     {
