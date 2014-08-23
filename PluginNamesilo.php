@@ -137,12 +137,7 @@ class PluginNamesilo extends RegistrarPlugin
 
     public function getGeneralInfo($params)
     {
-        $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
-            'domain'        => $domain
-        );
-        $response = $this->makeRequest('getDomainInfo', $params, $args);
-
+        $response = $this->getDomainInformation($params);
         $connectionIssueCodes = array(
             109,
             110,
@@ -158,7 +153,6 @@ class PluginNamesilo extends RegistrarPlugin
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail, EXCEPTION_CODE_CONNECTION_ISSUE);
         }
-
 
         if ( $response->reply->code != 300 ) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
@@ -184,11 +178,7 @@ class PluginNamesilo extends RegistrarPlugin
 
     public function getRegistrarLock($params)
     {
-        $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
-            'domain'        => $domain
-        );
-        $response = $this->makeRequest('getDomainInfo', $params, $args);
+        $response = $this->getDomainInformation($params);
         if ( $response->reply->code != 300 ) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
@@ -269,19 +259,14 @@ class PluginNamesilo extends RegistrarPlugin
 
     public function getContactInformation($params)
     {
-        $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
-            'domain'        => $domain
-        );
-
-        $response = $this->makeRequest('getDomainInfo', $params, $args);
+        $response = $this->getDomainInformation($params);
         if ( $response->reply->code != 300 ) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
 
         $contactId = $response->reply->contact_ids->registrant;
-        $args = array (
+        $args = array(
             'contact_id' => $contactId
         );
         $response = $this->makeRequest('contactList', $params, $args);
@@ -313,12 +298,7 @@ class PluginNamesilo extends RegistrarPlugin
 
     public function setContactInformation($params)
     {
-        $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
-            'domain'        => $domain
-        );
-
-        $response = $this->makeRequest('getDomainInfo', $params, $args);
+        $response = $this->getDomainInformation($params);
         if ( $response->reply->code != 300 ) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
@@ -349,11 +329,7 @@ class PluginNamesilo extends RegistrarPlugin
 
     public function getNameServers($params)
     {
-        $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
-            'domain'        => $domain
-        );
-        $response = $this->makeRequest('getDomainInfo', $params, $args);
+        $response = $this->getDomainInformation($params);
         if ( $response->reply->code != 300 ) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
@@ -517,12 +493,7 @@ class PluginNamesilo extends RegistrarPlugin
 
     public function togglePrivacy($params)
     {
-        $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
-            'domain'        => $domain
-        );
-
-        $response = $this->makeRequest('getDomainInfo', $params, $args);
+        $response = $this->getDomainInformation($params);
         if ( $response->reply->code != 300 ) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
@@ -534,6 +505,11 @@ class PluginNamesilo extends RegistrarPlugin
             $command = 'removePrivacy';
             $returnResult = 'off';
         }
+
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain'        => $domain
+        );
         $response = $this->makeRequest($command, $params, $args);
         if ( $response->reply->code != 300 ) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
@@ -548,6 +524,22 @@ class PluginNamesilo extends RegistrarPlugin
     public function registerNS($params){}
     public function editNS($params){}
     public function deleteNS($params){}
+
+    private function getDomainInformation($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain'        => $domain
+        );
+
+        $response = $this->makeRequest('getDomainInfo', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+
+        return $response;
+    }
 
     private function makeRequest($command, $params, $arguments)
     {
