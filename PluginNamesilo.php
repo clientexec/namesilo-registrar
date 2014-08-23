@@ -42,7 +42,7 @@ class PluginNamesilo extends RegistrarPlugin
             lang('Registered Actions') => array (
                                 'type'          => 'hidden',
                                 'description'   => lang('Current actions that are active for this plugin (when a domain is registered)'),
-                                'value'         => 'Renew (Renew Domain),SendTransferKey (Send Auth Info)',
+                                'value'         => 'Renew (Renew Domain),SendTransferKey (Send Auth Info),Cancel',
                                 ),
             lang('Registered Actions For Customer') => array (
                                 'type'          => 'hidden',
