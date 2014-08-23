@@ -31,7 +31,7 @@ class PluginNamesilo extends RegistrarPlugin
                                ),
             lang('Supported Features')  => array(
                                 'type'          => 'label',
-                                'description'   => '',
+                                'description'   => '* '.lang('TLD Lookup').'<br>* '.lang('Domain Registration').' <br>* '.lang('Existing Domain Importing').' <br>* '.lang('Get / Set Auto Renew Status').' <br>* '.lang('Get / Set DNS Records').' <br>* '.lang('Get / Set Nameserver Records').' <br>* '.lang('Get / Set Contact Information').' <br>* '.lang('Get / Set Registrar Lock').' <br>* '.lang('Initiate Domain Transfer').' <br>* '.lang('Automatically Renew Domain').' <br>* '.lang('Send Transfer Key'),
                                 'value'         => ''
                                 ),
             lang('Actions') => array (
