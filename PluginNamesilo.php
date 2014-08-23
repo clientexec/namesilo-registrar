@@ -365,10 +365,38 @@ class PluginNamesilo extends RegistrarPlugin
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
+    }
 
+    public function getDNS($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain' => $domain
+        );
+        $response = $this->makeRequest('dnsListRecords', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+
+        $records = array();
+        foreach ( $response->reply->resource_record as $r ) {
+            $record = array(
+                'id'            =>  (string)$r->record_id,
+                'hostname'      =>  (string)$r->host,
+                'address'       =>  (string)$r->value,
+                'type'          =>  (string)$r->type
+            );
+            $records[] = $record;
+        }
+
+        $types = array('A', 'MX', 'CNAME', 'TXT');
+        return array('records' => $records, 'types' => $types, 'default' => true);
     }
 
 
+    // The following functions are not used anymore.
+    // ToDo: These should not be abstract in RegistrarPlugin anymore.
     public function checkNSStatus($params){}
     public function registerNS($params){}
     public function editNS($params){}
