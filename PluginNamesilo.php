@@ -42,12 +42,12 @@ class PluginNamesilo extends RegistrarPlugin
             lang('Registered Actions') => array (
                                 'type'          => 'hidden',
                                 'description'   => lang('Current actions that are active for this plugin (when a domain is registered)'),
-                                'value'         => 'Renew (Renew Domain),DomainTransferWithPopup (Initiate Transfer),SendTransferKey (Send Auth Info),Cancel',
+                                'value'         => 'Renew (Renew Domain),togglePrivacy (Toggle Privacy),DomainTransferWithPopup (Initiate Transfer),SendTransferKey (Send Auth Info),Cancel',
                                 ),
             lang('Registered Actions For Customer') => array (
                                 'type'          => 'hidden',
                                 'description'   => lang('Current actions that are active for this plugin (when a domain is registered)'),
-                                'value'         => 'SendTransferKey (Send Auth Info)',
+                                'value'         => 'togglePrivacy (Toggle Privacy),SendTransferKey (Send Auth Info)',
             )
         );
         return $variables;
@@ -508,6 +508,39 @@ class PluginNamesilo extends RegistrarPlugin
         return $transferStatus;
     }
 
+    public function doTogglePrivacy($params)
+    {
+        $userPackage = new UserPackage($params['userPackageId']);
+        $status = $this->togglePrivacy($this->buildRegisterParams($userPackage,$params));
+        return "Turned privacy {$status} for " . $userPackage->getCustomField('Domain Name') . '.';
+    }
+
+    public function togglePrivacy($params)
+    {
+        $domain = strtolower($params['sld'] . '.' . $params['tld']);
+        $args = array(
+            'domain'        => $domain
+        );
+
+        $response = $this->makeRequest('getDomainInfo', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+
+        $command = 'addPrivacy';
+        $returnResult = 'on';
+        if ( strtolower($response->reply->private) == 'yes' ) {
+            $command = 'removePrivacy';
+            $returnResult = 'off';
+        }
+        $response = $this->makeRequest($command, $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+        return $returnResult;
+    }
 
     // The following functions are not used anymore.
     // ToDo: These should not be abstract in RegistrarPlugin anymore.
