@@ -142,6 +142,24 @@ class PluginNamesilo extends RegistrarPlugin
             'domain'        => $domain
         );
         $response = $this->makeRequest('getDomainInfo', $params, $args);
+
+        $connectionIssueCodes = array(
+            109,
+            110,
+            111,
+            112,
+            113,
+            115,
+            201,
+            210
+        );
+
+        if ( in_array($response->reply->code, $connectionIssueCodes) ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail, EXCEPTION_CODE_CONNECTION_ISSUE);
+        }
+
+
         if ( $response->reply->code != 300 ) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
