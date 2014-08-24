@@ -1,8 +1,9 @@
 <?php
 
 require_once 'modules/admin/models/RegistrarPlugin.php';
+require_once 'modules/domains/models/ICanImportDomains.php';
 
-class PluginNamesilo extends RegistrarPlugin
+class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
 {
     public $supportsNamesuggest = false;
 
@@ -169,9 +170,12 @@ class PluginNamesilo extends RegistrarPlugin
         if ( strtolower($response->reply->auto_renew) == 'yes' ) {
             $data['autorenew'] = 1;
         }
+
         // we should also update the autorenew here:
-        $userPackage = new UserPackage($params['userPackageId']);
-        $userPackage->setCustomField("Auto Renew", $data['autorenew']);
+        if ( $params['userPackageId'] ) {
+            $userPackage = new UserPackage($params['userPackageId']);
+            $userPackage->setCustomField("Auto Renew", $data['autorenew']);
+        }
 
         return $data;
     }
@@ -538,6 +542,27 @@ class PluginNamesilo extends RegistrarPlugin
         }
 
         return $response;
+    }
+
+    public function fetchDomains($params)
+    {
+        $args = array();
+        $response = $this->makeRequest('listDomains', $params, $args);
+        if ( $response->reply->code != 300 ) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+        $domainsList = array();
+        foreach ( $response->reply->domains as $domain ) {
+            $aDomain = DomainNameGateway::splitDomain((string)$domain->domain);
+            $data = array();
+            $data['id'] = (string)$domain->domain;
+            $data['sld'] = $aDomain[0];
+            $data['tld'] = $aDomain[1];
+            $data['exp'] = 'N/A';
+            $domainsList[] = $data;
+        }
+        return array($domainsList, array());
     }
 
     private function makeRequest($command, $params, $arguments)
