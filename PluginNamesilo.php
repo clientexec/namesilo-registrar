@@ -409,11 +409,12 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
                 $args['rrid'] = $record['id'];
                 $command = 'dnsUpdateRecord';
             }
-        }
-        $response = $this->makeRequest($command, $params, $args);
-        if ( $response->reply->code != 300 ) {
-            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
-            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+
+            $response = $this->makeRequest($command, $params, $args);
+            if ( $response->reply->code != 300 ) {
+                CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+                throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+            }
         }
     }
 
