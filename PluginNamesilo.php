@@ -554,13 +554,19 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
         $domainsList = array();
-        foreach ( $response->reply->domains as $domain ) {
-            $aDomain = DomainNameGateway::splitDomain((string)$domain->domain);
+        foreach ( $response->reply->domains->domain as $domain ) {
+            $aDomain = DomainNameGateway::splitDomain((string)$domain);
             $data = array();
             $data['id'] = (string)$domain->domain;
             $data['sld'] = $aDomain[0];
             $data['tld'] = $aDomain[1];
-            $data['exp'] = 'N/A';
+
+            // get expiration date
+            $params['sld'] = $aDomain[0];
+            $params['tld'] = $aDomain[1];
+            $expResponse = $this->getDomainInformation($params);
+            $data['exp'] = (string)$expResponse->reply->expires;
+
             $domainsList[] = $data;
         }
         return array($domainsList, array());
