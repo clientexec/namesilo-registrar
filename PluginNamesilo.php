@@ -481,7 +481,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
         $userPackage = new UserPackage($params['userPackageId']);
 
         $transferStatus = (string)$response->reply->message;
-        if ( $transferStatus == 'Transfer Completed' ) {
+        if ( strpos($transferStatus, 'has completed transferring') !== false ) {
             $userPackage->setCustomField('Transfer Status', 'Completed');
         }
 
