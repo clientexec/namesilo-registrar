@@ -1,11 +1,14 @@
 <?php
 
 require_once 'modules/admin/models/RegistrarPlugin.php';
-require_once 'modules/domains/models/ICanImportDomains.php';
 
-class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
+class PluginNamesilo extends RegistrarPlugin
 {
-    public $supportsNamesuggest = false;
+    public $features = [
+        'nameSuggest' => false,
+        'importDomains' => true,
+        'importPrices' => false,
+    ];
 
     private $sandboxURL = 'http://sandbox.namesilo.com/api/';
     private $liveURL = 'https://www.namesilo.com/api/';
@@ -63,14 +66,14 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
 
         $response = $this->makeRequest('checkRegisterAvailability', $params, $args);
 
-        if ( $response->reply->code != 300 ) {
-            CE_Lib::log(4,'NameSilo Error: ' . $response->reply->detail);
+        if ($response->reply->code != 300) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             return array(5);
         }
 
         $domains = array();
         $aDomain = DomainNameGateway::splitDomain($domain);
-        if ( isset($response->reply->available->domain) ) {
+        if (isset($response->reply->available->domain)) {
             $domains[] = array(
                 'tld' => $aDomain[1],
                 'domain' => $aDomain[0],
@@ -115,10 +118,10 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
             'cp'            => $params['RegistrantOrganizationName']
         );
 
-        if ( $this->settings->get('plugin_namesilo_Use testing server') ){
+        if ($this->settings->get('plugin_namesilo_Use testing server')) {
             $args['ns1'] = 'NS1.NAMESILO.COM';
             $args['ns2'] = 'NS2.NAMESILO.COM';
-        } else if ( isset($params['NS1']) ) {
+        } elseif (isset($params['NS1'])) {
             // NameSilo allows for 13 total name servers
             for ($i = 1; $i <= 13; $i++) {
                 if (isset($params["NS$i"])) {
@@ -130,7 +133,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
         }
 
         $response = $this->makeRequest('registerDomain', $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -150,12 +153,12 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
             210
         );
 
-        if ( in_array($response->reply->code, $connectionIssueCodes) ) {
+        if (in_array($response->reply->code, $connectionIssueCodes)) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail, EXCEPTION_CODE_CONNECTION_ISSUE);
         }
 
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -167,12 +170,12 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
         $data['purchasestatus'] = 'N/A';
         $data['autorenew'] = 0;
 
-        if ( strtolower($response->reply->auto_renew) == 'yes' ) {
+        if (strtolower($response->reply->auto_renew) == 'yes') {
             $data['autorenew'] = 1;
         }
 
         // we should also update the autorenew here:
-        if ( $params['userPackageId'] ) {
+        if ($params['userPackageId']) {
             $userPackage = new UserPackage($params['userPackageId']);
             $userPackage->setCustomField("Auto Renew", $data['autorenew']);
         }
@@ -183,12 +186,12 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
     public function getRegistrarLock($params)
     {
         $response = $this->getDomainInformation($params);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
 
-        if ( strtolower($response->reply->locked) == 'yes' ) {
+        if (strtolower($response->reply->locked) == 'yes') {
             return 1;
         }
         return 0;
@@ -197,7 +200,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
     function doSendTransferKey($params)
     {
         $userPackage = new UserPackage($params['userPackageId']);
-        $this->sendTransferKey($this->buildRegisterParams($userPackage,$params));
+        $this->sendTransferKey($this->buildRegisterParams($userPackage, $params));
         return 'Successfully sent auth info for ' . $userPackage->getCustomField('Domain Name');
     }
 
@@ -208,7 +211,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
             'domain' => $domain
         );
         $response = $this->makeRequest('retrieveAuthCode', $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -217,7 +220,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
     function doSetRegistrarLock($params)
     {
         $userPackage = new UserPackage($params['userPackageId']);
-        $this->setRegistrarLock($this->buildLockParams($userPackage,$params));
+        $this->setRegistrarLock($this->buildLockParams($userPackage, $params));
         return "Updated Registrar Lock.";
     }
 
@@ -229,13 +232,13 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
         );
 
         $command = 'domainUnlock';
-        if ( $params['lock'] == 1 ) {
+        if ($params['lock'] == 1) {
             // we are locking
             $command = 'domainLock';
         }
 
         $response = $this->makeRequest($command, $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -249,12 +252,12 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
         );
 
         $command = 'addAutoRenewal';
-        if ( !$params['autorenew'] ) {
+        if (!$params['autorenew']) {
             $command = 'removeAutoRenewal';
         }
 
         $response = $this->makeRequest($command, $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -264,7 +267,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
     public function getContactInformation($params)
     {
         $response = $this->getDomainInformation($params);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -274,7 +277,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
             'contact_id' => $contactId
         );
         $response = $this->makeRequest('contactList', $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -303,7 +306,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
     public function setContactInformation($params)
     {
         $response = $this->getDomainInformation($params);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -325,7 +328,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
         );
 
         $response = $this->makeRequest('contactUpdate', $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -334,7 +337,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
     public function getNameServers($params)
     {
         $response = $this->getDomainInformation($params);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -342,7 +345,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
         $info = array();
         $info['usesDefault'] = false;
         $info['hasDefault'] = false;
-        foreach ( $response->reply->nameservers->nameserver as $nameserver ) {
+        foreach ($response->reply->nameservers->nameserver as $nameserver) {
             $info[] = (string)$nameserver;
         }
         return $info;
@@ -359,7 +362,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
             $args['ns'.$key] = $value;
         }
         $response = $this->makeRequest('changeNameServers', $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -372,13 +375,13 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
             'domain' => $domain
         );
         $response = $this->makeRequest('dnsListRecords', $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
 
         $records = array();
-        foreach ( $response->reply->resource_record as $r ) {
+        foreach ($response->reply->resource_record as $r) {
             $record = array(
                 'id'            =>  (string)$r->record_id,
                 'hostname'      =>  (string)$r->host,
@@ -402,7 +405,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
             $args['rrhost'] = $record['hostname'];
             $args['rrvalue'] = $record['address'];
 
-            if ( $record['new'] == true ) {
+            if ($record['new'] == true) {
                 $args['rrtype'] = $record['type'];
                 $command = 'dnsAddRecord';
             } else {
@@ -411,7 +414,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
             }
 
             $response = $this->makeRequest($command, $params, $args);
-            if ( $response->reply->code != 300 ) {
+            if ($response->reply->code != 300) {
                 CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
                 throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
             }
@@ -421,8 +424,8 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
     public function doRenew($params)
     {
         $userPackage = new UserPackage($params['userPackageId']);
-        $this->renewDomain($this->buildRenewParams($userPackage,$params));
-        $userPackage->setCustomField("Registrar Order Id",$userPackage->getCustomField("Registrar") . '-' . $params['userPackageId']);
+        $this->renewDomain($this->buildRenewParams($userPackage, $params));
+        $userPackage->setCustomField("Registrar Order Id", $userPackage->getCustomField("Registrar") . '-' . $params['userPackageId']);
         return $userPackage->getCustomField('Domain Name') . ' has been renewed.';
     }
 
@@ -434,7 +437,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
             'years'  => $params['NumYears']
         );
         $response = $this->makeRequest('renewDomain', $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -443,8 +446,8 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
     public function doDomainTransferWithPopup($params)
     {
         $userPackage = new UserPackage($params['userPackageId']);
-        $transferid = $this->initiateTransfer($this->buildTransferParams($userPackage,$params));
-        $userPackage->setCustomField("Registrar Order Id",$userPackage->getCustomField("Registrar") . '-' . $params['userPackageId']);
+        $transferid = $this->initiateTransfer($this->buildTransferParams($userPackage, $params));
+        $userPackage->setCustomField("Registrar Order Id", $userPackage->getCustomField("Registrar") . '-' . $params['userPackageId']);
         $userPackage->setCustomField('Transfer Status', $transferid);
         return "Transfer of has been initiated.";
     }
@@ -459,7 +462,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
 
         );
         $response = $this->makeRequest('transferDomain', $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -473,15 +476,14 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
             'domain' => $domain
         );
         $response = $this->makeRequest('checkTransferStatus', $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
-
         }
         $userPackage = new UserPackage($params['userPackageId']);
 
         $transferStatus = (string)$response->reply->message;
-        if ( strpos($transferStatus, 'has completed transferring') !== false ) {
+        if (strpos($transferStatus, 'has completed transferring') !== false) {
             $userPackage->setCustomField('Transfer Status', 'Completed');
         }
 
@@ -491,21 +493,21 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
     public function doTogglePrivacy($params)
     {
         $userPackage = new UserPackage($params['userPackageId']);
-        $status = $this->togglePrivacy($this->buildRegisterParams($userPackage,$params));
+        $status = $this->togglePrivacy($this->buildRegisterParams($userPackage, $params));
         return "Turned privacy {$status} for " . $userPackage->getCustomField('Domain Name') . '.';
     }
 
     public function togglePrivacy($params)
     {
         $response = $this->getDomainInformation($params);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
 
         $command = 'addPrivacy';
         $returnResult = 'on';
-        if ( strtolower($response->reply->private) == 'yes' ) {
+        if (strtolower($response->reply->private) == 'yes') {
             $command = 'removePrivacy';
             $returnResult = 'off';
         }
@@ -515,7 +517,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
             'domain'        => $domain
         );
         $response = $this->makeRequest($command, $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -524,10 +526,18 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
 
     // The following functions are not used anymore.
     // ToDo: These should not be abstract in RegistrarPlugin anymore.
-    public function checkNSStatus($params){}
-    public function registerNS($params){}
-    public function editNS($params){}
-    public function deleteNS($params){}
+    public function checkNSStatus($params)
+    {
+    }
+    public function registerNS($params)
+    {
+    }
+    public function editNS($params)
+    {
+    }
+    public function deleteNS($params)
+    {
+    }
 
     private function getDomainInformation($params)
     {
@@ -537,7 +547,7 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
         );
 
         $response = $this->makeRequest('getDomainInfo', $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
@@ -549,12 +559,12 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
     {
         $args = array();
         $response = $this->makeRequest('listDomains', $params, $args);
-        if ( $response->reply->code != 300 ) {
+        if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
         $domainsList = array();
-        foreach ( $response->reply->domains->domain as $domain ) {
+        foreach ($response->reply->domains->domain as $domain) {
             $aDomain = DomainNameGateway::splitDomain((string)$domain);
             $data = array();
             $data['id'] = (string)$domain->domain;
@@ -574,10 +584,10 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
 
     private function makeRequest($command, $params, $arguments)
     {
-        require_once 'library/CE/NE_Network.php';
+        include_once 'library/CE/NE_Network.php';
 
         $request = $this->liveURL;
-        if ( $this->settings->get('plugin_namesilo_Use testing server') ){
+        if ($this->settings->get('plugin_namesilo_Use testing server')) {
             $request = $this->sandboxURL;
         }
         $request .= $command;
@@ -589,18 +599,24 @@ class PluginNamesilo extends RegistrarPlugin implements ICanImportDomains
         $i = 0;
         foreach ($arguments as $name => $value) {
             $value = urlencode($value);
-            if ( $i == 0 ) $request .= "?$name=$value";
-            else $request .= "&$name=$value";
+            if ($i == 0) {
+                $request .= "?$name=$value";
+            } else {
+                $request .= "&$name=$value";
+            }
             $i++;
         }
 
         $response = NE_Network::curlRequest($this->settings, $request);
 
-        if ( $response instanceof CE_Error ) {
-            throw new CE_Exception ($response);
+        if ($response instanceof CE_Error) {
+            throw new CE_Exception($response);
         }
 
-        $response = simplexml_load_string($response);
+        $response = @simplexml_load_string(trim($response));
+        if ($response === false) {
+            throw new CE_Exception('Invalid XML from NameSilo', EXCEPTION_CODE_CONNECTION_ISSUE);
+        }
         return $response;
     }
 
