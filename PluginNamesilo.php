@@ -7,13 +7,24 @@ class PluginNamesilo extends RegistrarPlugin
     public $features = [
         'nameSuggest' => false,
         'importDomains' => true,
-        'importPrices' => false,
+        'importPrices' => true,
     ];
 
-    private $sandboxURL = 'http://sandbox.namesilo.com/api/';
+    private $sandboxURL = 'https://sandbox.namesilo.com/api/';
     private $liveURL = 'https://www.namesilo.com/api/';
     private $apiVersion = '1';
     private $returnType = 'xml';
+
+    private $connectionIssueCodes = [
+        109,
+        110,
+        111,
+        112,
+        113,
+        115,
+        201,
+        210
+    ];
 
     public function getVariables()
     {
@@ -55,6 +66,21 @@ class PluginNamesilo extends RegistrarPlugin
             )
         );
         return $variables;
+    }
+
+    public function getTLDsAndPrices($params)
+    {
+        $tlds = [];
+        $response = $this->makeRequest('getPrices', [], []);
+        foreach (get_object_vars($response->reply) as $tld => $obj) {
+            if ($tld == 'code' || $tld == 'detail') {
+                continue;
+            }
+            $tlds[$tld]['pricing']['register'] = $obj->registration;
+            $tlds[$tld]['pricing']['transfer'] = $obj->transfer;
+            $tlds[$tld]['pricing']['renew'] = $obj->renew;
+        }
+        return $tlds;
     }
 
     public function checkDomain($params)
@@ -125,7 +151,7 @@ class PluginNamesilo extends RegistrarPlugin
             // NameSilo allows for 13 total name servers
             for ($i = 1; $i <= 13; $i++) {
                 if (isset($params["NS$i"])) {
-                    $args["ns$i"] = $params["ns$i"]['hostname'];
+                    $args["ns$i"] = $params["NS$i"]['hostname'];
                 } else {
                     break;
                 }
@@ -142,22 +168,6 @@ class PluginNamesilo extends RegistrarPlugin
     public function getGeneralInfo($params)
     {
         $response = $this->getDomainInformation($params);
-        $connectionIssueCodes = array(
-            109,
-            110,
-            111,
-            112,
-            113,
-            115,
-            201,
-            210
-        );
-
-        if (in_array($response->reply->code, $connectionIssueCodes)) {
-            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
-            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail, EXCEPTION_CODE_CONNECTION_ISSUE);
-        }
-
         if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
@@ -547,6 +557,12 @@ class PluginNamesilo extends RegistrarPlugin
         );
 
         $response = $this->makeRequest('getDomainInfo', $params, $args);
+
+        if (in_array($response->reply->code, $this->connectionIssueCodes)) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail, EXCEPTION_CODE_CONNECTION_ISSUE);
+        }
+
         if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
