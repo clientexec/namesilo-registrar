@@ -28,43 +28,48 @@ class PluginNamesilo extends RegistrarPlugin
 
     public function getVariables()
     {
-        $variables = array(
-            lang('Plugin Name') => array (
-                                'type'          =>'hidden',
-                                'description'   =>lang('How CE sees this plugin (not to be confused with the Signup Name)'),
-                                'value'         =>lang('NameSilo')
-                               ),
-            lang('Use testing server') => array(
-                                'type'          =>'yesno',
-                                'description'   =>lang('Select Yes if you wish to use NameSilo\'s testing environment, so that transactions are not actually made.'),
-                                'value'         =>0
-                               ),
-            lang('API Key') => array(
-                                'type'          =>'text',
-                                'description'   =>lang('Enter your API Key'),
-                                'value'         =>''
-                               ),
-            lang('Supported Features')  => array(
-                                'type'          => 'label',
-                                'description'   => '* '.lang('TLD Lookup').'<br>* '.lang('Domain Registration').' <br>* '.lang('Existing Domain Importing').' <br>* '.lang('Get / Set Auto Renew Status').' <br>* '.lang('Get / Set DNS Records').' <br>* '.lang('Get / Set Nameserver Records').' <br>* '.lang('Get / Set Contact Information').' <br>* '.lang('Get / Set Registrar Lock').' <br>* '.lang('Initiate Domain Transfer').' <br>* '.lang('Automatically Renew Domain').' <br>* '.lang('Send Transfer Key'),
-                                'value'         => ''
-                                ),
-            lang('Actions') => array (
-                                'type'          => 'hidden',
-                                'description'   => lang('Current actions that are active for this plugin (when a domain isn\'t registered)'),
-                                'value'         => 'Register'
-                                ),
-            lang('Registered Actions') => array (
-                                'type'          => 'hidden',
-                                'description'   => lang('Current actions that are active for this plugin (when a domain is registered)'),
-                                'value'         => 'Renew (Renew Domain),togglePrivacy (Toggle Privacy),DomainTransferWithPopup (Initiate Transfer),SendTransferKey (Send Auth Info),Cancel',
-                                ),
-            lang('Registered Actions For Customer') => array (
-                                'type'          => 'hidden',
-                                'description'   => lang('Current actions that are active for this plugin (when a domain is registered)'),
-                                'value'         => 'togglePrivacy (Toggle Privacy),SendTransferKey (Send Auth Info)',
-            )
-        );
+        $variables = [
+            lang('Plugin Name') => [
+                'type' => 'hidden',
+                'description' => lang('How CE sees this plugin (not to be confused with the Signup Name)'),
+                'value' => lang('NameSilo')
+            ],
+            lang('Use testing server') => [
+                'type' => 'yesno',
+                'description' => lang('Select Yes if you wish to use NameSilo\'s testing environment, so that transactions are not actually made.'),
+                'value' => 0
+            ],
+            lang('API Key') => [
+                'type' => 'text',
+                'description' => lang('Enter your API Key'),
+                'value' => ''
+            ],
+            lang('Auto Renew Domains?') => [
+                'type' => 'yesno',
+                'description' => lang('Select Yes if you wish to have auto renew enabled for new registrations and transfers.'),
+                'value' => 0
+            ],
+            lang('Supported Features')  => [
+                'type' => 'label',
+                'description' => '* '.lang('TLD Lookup').'<br>* '.lang('Domain Registration').' <br>* '.lang('Existing Domain Importing').' <br>* '.lang('Get / Set Auto Renew Status').' <br>* '.lang('Get / Set DNS Records').' <br>* '.lang('Get / Set Nameserver Records').' <br>* '.lang('Get / Set Contact Information').' <br>* '.lang('Get / Set Registrar Lock').' <br>* '.lang('Initiate Domain Transfer').' <br>* '.lang('Automatically Renew Domain').' <br>* '.lang('Send Transfer Key'),
+                'value' => ''
+            ],
+            lang('Actions') => [
+                'type' => 'hidden',
+                'description' => lang('Current actions that are active for this plugin (when a domain isn\'t registered)'),
+                'value' => 'Register'
+            ],
+            lang('Registered Actions') => [
+                'type' => 'hidden',
+                'description' => lang('Current actions that are active for this plugin (when a domain is registered)'),
+                'value' => 'Renew (Renew Domain),togglePrivacy (Toggle Privacy),DomainTransferWithPopup (Initiate Transfer),SendTransferKey (Send Auth Info),Cancel',
+            ],
+            lang('Registered Actions For Customer') => [
+                'type' => 'hidden',
+                'description' => lang('Current actions that are active for this plugin (when a domain is registered)'),
+                'value' => 'togglePrivacy (Toggle Privacy),SendTransferKey (Send Auth Info)',
+            ],
+        ];
         return $variables;
     }
 
@@ -86,34 +91,34 @@ class PluginNamesilo extends RegistrarPlugin
     public function checkDomain($params)
     {
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
+        $args = [
             'domains' => $domain
-        );
+        ];
 
         $response = $this->makeRequest('checkRegisterAvailability', $params, $args);
 
         if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
-            return array(5);
+            return [5];
         }
 
-        $domains = array();
+        $domains = [];
         $aDomain = DomainNameGateway::splitDomain($domain);
         if (isset($response->reply->available->domain)) {
-            $domains[] = array(
+            $domains[] = [
                 'tld' => $aDomain[1],
                 'domain' => $aDomain[0],
                 'status' => 0
-            );
+            ];
         } else {
-            $domains[] = array(
+            $domains[] = [
                 'tld' => $aDomain[1],
                 'domain' => $aDomain[0],
                 'status' => 1
-            );
+            ];
         }
 
-        return array('result' => $domains);
+        return ['result' => $domains];
     }
 
     function doRegister($params)
@@ -127,7 +132,7 @@ class PluginNamesilo extends RegistrarPlugin
     public function registerDomain($params)
     {
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
+        $args = [
             'domain'        => $domain,
             'years'         => $params['NumYears'],
             'private'       => 0,
@@ -142,7 +147,15 @@ class PluginNamesilo extends RegistrarPlugin
             'em'            => $params['RegistrantEmailAddress'],
             'ph'            => $this->validatePhone($params['RegistrantPhone']),
             'cp'            => $params['RegistrantOrganizationName']
-        );
+        ];
+
+        if (isset($params['package_addons']['IDPROTECT']) && $params['package_addons']['IDPROTECT'] == 1) {
+            $args['private'] = 1;
+        }
+
+        if ($this->getVariable('Auto Renew Domains?') == 1) {
+            $args['auto_renew'] = 1;
+        }
 
         if ($this->settings->get('plugin_namesilo_Use testing server')) {
             $args['ns1'] = 'NS1.NAMESILO.COM';
@@ -173,7 +186,7 @@ class PluginNamesilo extends RegistrarPlugin
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
 
-        $data = array();
+        $data = [];
         $data['domain'] = $domain;
         $data['expiration'] = (string)$response->reply->expires;
         $data['registrationstatus'] = (string)$response->reply->status;
@@ -217,9 +230,9 @@ class PluginNamesilo extends RegistrarPlugin
     public function sendTransferKey($params)
     {
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
+        $args = [
             'domain' => $domain
-        );
+        ];
         $response = $this->makeRequest('retrieveAuthCode', $params, $args);
         if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
@@ -237,9 +250,9 @@ class PluginNamesilo extends RegistrarPlugin
     function setRegistrarLock($params)
     {
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
+        $args = [
             'domain' => $domain
-        );
+        ];
 
         $command = 'domainUnlock';
         if ($params['lock'] == 1) {
@@ -257,9 +270,9 @@ class PluginNamesilo extends RegistrarPlugin
     public function setAutorenew($params)
     {
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
+        $args = [
             'domain' => $domain
-        );
+        ];
 
         $command = 'addAutoRenewal';
         if (!$params['autorenew']) {
@@ -283,9 +296,9 @@ class PluginNamesilo extends RegistrarPlugin
         }
 
         $contactId = $response->reply->contact_ids->registrant;
-        $args = array(
+        $args = [
             'contact_id' => $contactId
-        );
+        ];
         $response = $this->makeRequest('contactList', $params, $args);
         if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
@@ -294,20 +307,20 @@ class PluginNamesilo extends RegistrarPlugin
 
         $contact = $response->reply->contact;
 
-        $info = array();
-        foreach (array('Registrant') as $type) {
-            $info[$type]['OrganizationName'] = array($this->user->lang('Organization'), (string)$contact->company);
-            $info[$type]['FirstName'] = array($this->user->lang('First Name'), (string)$contact->first_name);
-            $info[$type]['LastName'] = array($this->user->lang('Last Name'), (string)$contact->last_name);
-            $info[$type]['Address1'] = array($this->user->lang('Address').' 1', (string)$contact->address);
-            $info[$type]['Address2'] = array($this->user->lang('Address').' 2', (string)$contact->address2);
-            $info[$type]['City'] = array($this->user->lang('City'), (string)$contact->city);
-            $info[$type]['StateProv'] = array($this->user->lang('Province').'/'.$this->user->lang('State'), (string)$contact->state);
-            $info[$type]['Country']  = array($this->user->lang('Country'), (string)$contact->country);
-            $info[$type]['PostalCode']  = array($this->user->lang('Postal Code'), (string)$contact->zip);
-            $info[$type]['EmailAddress'] = array($this->user->lang('E-mail'), (string)$contact->email);
-            $info[$type]['Phone'] = array($this->user->lang('Phone'), (string)$contact->phone);
-            $info[$type]['Fax'] = array($this->user->lang('Fax'), (string)$contact->fax);
+        $info = [];
+        foreach (['Registrant'] as $type) {
+            $info[$type]['OrganizationName'] = [$this->user->lang('Organization'), (string)$contact->company];
+            $info[$type]['FirstName'] = [$this->user->lang('First Name'), (string)$contact->first_name];
+            $info[$type]['LastName'] = [$this->user->lang('Last Name'), (string)$contact->last_name];
+            $info[$type]['Address1'] = [$this->user->lang('Address').' 1', (string)$contact->address];
+            $info[$type]['Address2'] = [$this->user->lang('Address').' 2', (string)$contact->address2];
+            $info[$type]['City'] = [$this->user->lang('City'), (string)$contact->city];
+            $info[$type]['StateProv'] = [$this->user->lang('Province').'/'.$this->user->lang('State'), (string)$contact->state];
+            $info[$type]['Country']  = [$this->user->lang('Country'), (string)$contact->country];
+            $info[$type]['PostalCode']  = [$this->user->lang('Postal Code'), (string)$contact->zip];
+            $info[$type]['EmailAddress'] = [$this->user->lang('E-mail'), (string)$contact->email];
+            $info[$type]['Phone'] = [$this->user->lang('Phone'), (string)$contact->phone];
+            $info[$type]['Fax'] = [$this->user->lang('Fax'), (string)$contact->fax];
         }
 
         return $info;
@@ -322,7 +335,7 @@ class PluginNamesilo extends RegistrarPlugin
         }
 
         $contactId = $response->reply->contact_ids->registrant;
-        $args = array (
+        $args = [
             'contact_id'    => (int)$contactId,
             'fn'            => $params['Registrant_FirstName'],
             'ln'            => $params['Registrant_LastName'],
@@ -334,8 +347,7 @@ class PluginNamesilo extends RegistrarPlugin
             'em'            => $params['Registrant_EmailAddress'],
             'ph'            => $this->validatePhone($params['Registrant_Phone']),
             'cp'            => $params['Registrant_OrganizationName']
-
-        );
+        ];
 
         $response = $this->makeRequest('contactUpdate', $params, $args);
         if ($response->reply->code != 300) {
@@ -352,7 +364,7 @@ class PluginNamesilo extends RegistrarPlugin
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
 
-        $info = array();
+        $info = [];
         $info['usesDefault'] = false;
         $info['hasDefault'] = false;
         foreach ($response->reply->nameservers->nameserver as $nameserver) {
@@ -364,9 +376,9 @@ class PluginNamesilo extends RegistrarPlugin
     public function setNameServers($params)
     {
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
+        $args = [
             'domain' => $domain
-        );
+        ];
 
         foreach ($params['ns'] as $key => $value) {
             $args['ns'.$key] = $value;
@@ -381,52 +393,60 @@ class PluginNamesilo extends RegistrarPlugin
     public function getDNS($params)
     {
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
+        $args = [
             'domain' => $domain
-        );
+        ];
+
         $response = $this->makeRequest('dnsListRecords', $params, $args);
         if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
 
-        $records = array();
+        $records = [];
         foreach ($response->reply->resource_record as $r) {
-            $record = array(
+            $record = [
                 'id'            =>  (string)$r->record_id,
                 'hostname'      =>  (string)$r->host,
                 'address'       =>  (string)$r->value,
                 'type'          =>  (string)$r->type
-            );
+            ];
             $records[] = $record;
         }
 
-        $types = array('A', 'MX', 'CNAME', 'TXT');
-        return array('records' => $records, 'types' => $types, 'default' => true);
+        $types = ['A', 'MX', 'CNAME', 'TXT'];
+        return ['records' => $records, 'types' => $types, 'default' => true];
     }
 
     public function setDNS($params)
     {
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
+        $args = [
             'domain' => $domain
-        );
+        ];
+
+        // delete all records first
+        $response = $this->makeRequest('dnsListRecords', $params, $args);
+        if ($response->reply->code != 300) {
+            CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
+            throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+        }
+        foreach ($response->reply->resource_record as $r) {
+            $args = [
+                'domain' => $domain,
+                'rrid' => (string)$r->record_id
+            ];
+            $response = $this->makeRequest('dnsDeleteRecord', $params, $args);
+        }
+
+        // re-add any
         foreach ($params['records'] as $index => $record) {
-            $args['rrhost'] = $record['hostname'];
+            $args['rrhost'] = preg_replace("/\.{$domain}$/", '', $record['hostname']);
             $args['rrvalue'] = $record['address'];
-
-            if ($record['new'] == true) {
-                $args['rrtype'] = $record['type'];
-                $command = 'dnsAddRecord';
-            } else {
-                $args['rrid'] = $record['id'];
-                $command = 'dnsUpdateRecord';
-            }
-
-            $response = $this->makeRequest($command, $params, $args);
+            $args['rrtype'] = $record['type'];
+            $response = $this->makeRequest('dnsAddRecord', $params, $args);
             if ($response->reply->code != 300) {
                 CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
-                throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
             }
         }
     }
@@ -442,10 +462,10 @@ class PluginNamesilo extends RegistrarPlugin
     public function renewDomain($params)
     {
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
+        $args = [
             'domain' => $domain,
             'years'  => $params['NumYears']
-        );
+        ];
         $response = $this->makeRequest('renewDomain', $params, $args);
         if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
@@ -465,12 +485,15 @@ class PluginNamesilo extends RegistrarPlugin
     public function initiateTransfer($params)
     {
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
+        $args = [
             'domain' => $domain,
             'years'  => $params['NumYears'],
-            'auth'   => $params['eppCode']
-
-        );
+            'auth'   => $params['eppCode'],
+            'auto_renew' => 0
+        ];
+        if ($this->getVariable('Auto Renew Domains?') == 1) {
+            $args['auto_renew'] = 1;
+        }
         $response = $this->makeRequest('transferDomain', $params, $args);
         if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
@@ -482,9 +505,9 @@ class PluginNamesilo extends RegistrarPlugin
     public function getTransferStatus($params)
     {
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
+        $args = [
             'domain' => $domain
-        );
+        ];
         $response = $this->makeRequest('checkTransferStatus', $params, $args);
         if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
@@ -523,9 +546,9 @@ class PluginNamesilo extends RegistrarPlugin
         }
 
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
+        $args = [
             'domain'        => $domain
-        );
+        ];
         $response = $this->makeRequest($command, $params, $args);
         if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
@@ -552,9 +575,9 @@ class PluginNamesilo extends RegistrarPlugin
     private function getDomainInformation($params)
     {
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
-        $args = array(
-            'domain'        => $domain
-        );
+        $args = [
+            'domain' => $domain
+        ];
 
         $response = $this->makeRequest('getDomainInfo', $params, $args);
 
@@ -573,16 +596,15 @@ class PluginNamesilo extends RegistrarPlugin
 
     public function fetchDomains($params)
     {
-        $args = array();
-        $response = $this->makeRequest('listDomains', $params, $args);
+        $response = $this->makeRequest('listDomains', $params, []);
         if ($response->reply->code != 300) {
             CE_Lib::log(4, 'NameSilo Error: ' . $response->reply->detail);
             throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
         }
-        $domainsList = array();
+        $domainsList = [];
         foreach ($response->reply->domains->domain as $domain) {
             $aDomain = DomainNameGateway::splitDomain((string)$domain);
-            $data = array();
+            $data = [];
             $data['id'] = (string)$domain->domain;
             $data['sld'] = $aDomain[0];
             $data['tld'] = $aDomain[1];
@@ -595,7 +617,7 @@ class PluginNamesilo extends RegistrarPlugin
 
             $domainsList[] = $data;
         }
-        return array($domainsList, array());
+        return [$domainsList, []];
     }
 
     private function makeRequest($command, $params, $arguments)
