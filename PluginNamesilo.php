@@ -131,6 +131,27 @@ class PluginNamesilo extends RegistrarPlugin
 
     public function registerDomain($params)
     {
+        $requiredFields = [
+            'RegistrantFirstName',
+            'RegistrantLastName',
+            'RegistrantAddress1',
+            'RegistrantCity',
+            'RegistrantStateProvince',
+            'RegistrantPostalCode',
+            'RegistrantCountry',
+            'RegistrantEmailAddress',
+            'RegistrantPhone'
+        ];
+        $errors = [];
+        foreach ($requiredFields as $field) {
+            if (empty($params[$field])) {
+                $errors[] = $this->user->lang('%s can not be empty.', $field);
+            }
+        }
+        if (count($errors) > 0) {
+            throw new CE_Exception(implode("\n", $errors));
+        }
+
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
         $args = [
             'domain'        => $domain,
