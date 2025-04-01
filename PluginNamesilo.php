@@ -10,7 +10,7 @@ class PluginNamesilo extends RegistrarPlugin
         'importPrices' => true,
     ];
 
-    private $sandboxURL = 'https://sandbox.namesilo.com/api/';
+    private $sandboxURL = 'https://ote.namesilo.com/api/';
     private $liveURL = 'https://www.namesilo.com/api/';
     private $apiVersion = '1';
     private $returnType = 'xml';
@@ -222,6 +222,9 @@ class PluginNamesilo extends RegistrarPlugin
             'RegistrantEmailAddress',
             'RegistrantPhone'
         ];
+
+        $contactId = null;
+
         $errors = [];
         foreach ($requiredFields as $field) {
             if (empty($params[$field])) {
@@ -232,23 +235,60 @@ class PluginNamesilo extends RegistrarPlugin
             throw new CE_Exception(implode("\n", $errors));
         }
 
+        if ($params['tld'] == 'ca' || $params['tld'] == 'us') {
+            $args = [
+                'fn'            => $params['RegistrantFirstName'],
+                'ln'            => $params['RegistrantLastName'],
+                'ad'            => $params['RegistrantAddress1'],
+                'cy'            => $params['RegistrantCity'],
+                'st'            => $params['RegistrantStateProvince'],
+                'zp'            => $params['RegistrantPostalCode'],
+                'ct'            => $params['RegistrantCountry'],
+                'em'            => $params['RegistrantEmailAddress'],
+                'ph'            => $this->validatePhone($params['RegistrantPhone']),
+                'cp'            => $params['RegistrantOrganizationName'],
+            ];
+
+            if ($params['tld'] == 'ca') {
+                $args['calf'] = $params['ExtendedAttributes']['cira_legal_type'];
+                $args['caln'] = $params['ExtendedAttributes']['cira_language'];
+                $args['caag'] = $params['ExtendedAttributes']['cira_agreement_version'];
+                $args['cawd'] = $params['ExtendedAttributes']['cira_agreement_value'];
+            } elseif ($params['tld'] == 'us') {
+                $args['usnc'] = $params['ExtendedAttributes']['us_nexus'];
+                $args['usap'] = $params['ExtendedAttributes']['us_purpose'];
+            }
+
+            $response = $this->makeRequest('contactAdd', $params, $args);
+            if ($response->reply->code == 300) {
+                $contactId = (int)$response->reply->contact_id;
+            } else {
+                throw new CE_Exception('NameSilo Error: ' . $response->reply->detail);
+            }
+        }
+
         $domain = strtolower($params['sld'] . '.' . $params['tld']);
         $args = [
             'domain'        => $domain,
             'years'         => $params['NumYears'],
             'private'       => 0,
             'auto_renew'    => 0,
-            'fn'            => $params['RegistrantFirstName'],
-            'ln'            => $params['RegistrantLastName'],
-            'ad'            => $params['RegistrantAddress1'],
-            'cy'            => $params['RegistrantCity'],
-            'st'            => $params['RegistrantStateProvince'],
-            'zp'            => $params['RegistrantPostalCode'],
-            'ct'            => $params['RegistrantCountry'],
-            'em'            => $params['RegistrantEmailAddress'],
-            'ph'            => $this->validatePhone($params['RegistrantPhone']),
-            'cp'            => $params['RegistrantOrganizationName']
         ];
+
+        if (is_null($contactId)) {
+            $args['fn'] = $params['RegistrantFirstName'];
+            $args['ln'] = $params['RegistrantLastName'];
+            $args['ad'] = $params['RegistrantAddress1'];
+            $args['cy'] = $params['RegistrantCity'];
+            $args['st'] = $params['RegistrantStateProvince'];
+            $args['zp'] = $params['RegistrantPostalCode'];
+            $args['ct'] = $params['RegistrantCountry'];
+            $args['em'] = $params['RegistrantEmailAddress'];
+            $args['ph'] = $this->validatePhone($params['RegistrantPhone']);
+            $args['cp'] = $params['RegistrantOrganizationName'];
+        } else {
+            $args['contact_id'] = $contactId;
+        }
 
         if (isset($params['package_addons']['IDPROTECT']) && $params['package_addons']['IDPROTECT'] == 1) {
             $args['private'] = 1;
